@@ -1,0 +1,31 @@
+name: Build RMM Client
+on: [workflow_dispatch]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.6.0'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+
+      - name: Build with CMake
+        run: |
+          cd Client
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Havoc-Client-Windows
+          path: Client/build/Release/Havoc.exe
