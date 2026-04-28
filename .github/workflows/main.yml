@@ -11,7 +11,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # Havoc works best with 3.10
+          python-version: '3.10'
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -21,16 +21,16 @@ jobs:
           target: 'desktop'
           arch: 'win64_msvc2019_64'
 
-      - name: Install Dependencies via vcpkg
+      - name: Install Missing Parts
         run: |
-          vcpkg install nlohmann-json spdlog toml11
+          vcpkg install nlohmann-json spdlog toml11 --triplet x64-windows
 
       - name: Build with CMake
         run: |
           cd Client
           mkdir build
           cd build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
           cmake --build . --config Release
 
       - name: Upload Artifact
