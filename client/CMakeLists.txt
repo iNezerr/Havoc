@@ -34,11 +34,27 @@ find_package( Qt${QT_VERSION} COMPONENTS ${REQUIRED_LIBS} REQUIRED )
 ##
 ## external libraries
 ##
-# Prefer package managers (e.g., vcpkg) on Windows CI.
-# On developer machines, these can be provided via vcpkg, system packages, or vendored headers.
-find_package( nlohmann_json CONFIG QUIET )
-find_package( spdlog CONFIG QUIET )
-find_package( toml11 CONFIG QUIET )
+# On Windows, require vcpkg-provided packages (CI uses vcpkg toolchain).
+# On other platforms, try package managers quietly; vendored submodule headers
+# serve as a fallback when the submodules have been checked out.
+if(WIN32)
+  find_package( nlohmann_json CONFIG REQUIRED )
+  find_package( spdlog CONFIG REQUIRED )
+  find_package( toml11 CONFIG REQUIRED )
+else()
+  find_package( nlohmann_json CONFIG QUIET )
+  find_package( spdlog CONFIG QUIET )
+  find_package( toml11 CONFIG QUIET )
+  if(NOT TARGET nlohmann_json::nlohmann_json)
+    include_directories( external/json/include )
+  endif()
+  if(NOT TARGET spdlog::spdlog)
+    include_directories( external/spdlog/include )
+  endif()
+  if(NOT TARGET toml11::toml11)
+    include_directories( external/toml )
+  endif()
+endif()
 
 ##
 ## Python support
@@ -67,6 +83,8 @@ if(APPLE)
     string( STRIP ${BREW_PREFIX} BREW_PREFIX ) #for some reason this happens: https://gitlab.kitware.com/cmake/cmake/-/issues/22404
     include_directories( "${BREW_PREFIX}/bin/python3.10" )
     include_directories( "${BREW_PREFIX}/Frameworks/Python.framework/Headers" )
+elseif(WIN32)
+    include_directories( ${Python_INCLUDE_DIRS} )
 elseif(UNIX)
     include_directories( ${PYTHON_INCLUDE_DIRS} )
 endif()

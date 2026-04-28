@@ -26,15 +26,16 @@ jobs:
           vcpkg install nlohmann-json spdlog toml11 --triplet x64-windows
 
       - name: Build with CMake
+        shell: pwsh
         run: |
-          cd Client
+          cd client
           mkdir build
           cd build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows "-DPython_ROOT_DIR=$env:Python_ROOT_DIR"
           cmake --build . --config Release
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Havoc-Client-Windows
-          path: Client/build/Release/Havoc.exe
+          path: client/build/Release/Havoc.exe
