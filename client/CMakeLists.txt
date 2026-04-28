@@ -9,9 +9,6 @@ set( CMAKE_CXX_STANDARD 20 )
 set( CMAKE_AUTOMOC ON )
 set( CMAKE_AUTORCC ON )
 set( CMAKE_AUTOUIC ON )
-set( CMAKE_CPP_COMPILER /usr/bin/x86_64-w64-mingw32-g++ )
-set( CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc )
-set( CMAKE_CXX_FLAGS "-fpermissive" )
 set( REQUIRED_LIBS Core Gui Widgets Network WebSockets Sql )
 set( REQUIRED_LIBS_QUALIFIED Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Network Qt5::WebSockets Qt5::Sql )
 set( APP_ICON_RESOURCE_WINDOWS "data/Havoc.qrc" )
@@ -25,12 +22,9 @@ set( CMAKE_INCLUDE_CURRENT_DIR ON )
 set( Python_ADDITIONAL_VERSIONS 3.10 )
 
 ##
-## import includes and external libraries
+## import includes
 ##
-include_directories( include  )
-include_directories( external/spdlog/include )
-include_directories( external/json/include )
-include_directories( external/toml )
+include_directories( include )
 
 ##
 ## find qt packages
@@ -38,8 +32,19 @@ include_directories( external/toml )
 find_package( Qt${QT_VERSION} COMPONENTS ${REQUIRED_LIBS} REQUIRED )
 
 ##
-## apple support
+## external libraries
 ##
+# Prefer package managers (e.g., vcpkg) on Windows CI.
+# On developer machines, these can be provided via vcpkg, system packages, or vendored headers.
+find_package( nlohmann_json CONFIG QUIET )
+find_package( spdlog CONFIG QUIET )
+find_package( toml11 CONFIG QUIET )
+
+##
+## Python support
+##
+# Use modern CMake Python package when available (especially on Windows, to provide Python.h).
+# Fall back to legacy FindPythonLibs on older UNIX setups.
 if(APPLE)
   find_package( Python 3 COMPONENTS Interpreter Development REQUIRED )
   set( PYTHON_MAJOR $ENV{Python_VERSION_MAJOR} )
@@ -48,13 +53,14 @@ if(APPLE)
   set( PYTHON_INCLUDE_DIR ${Python_INCLUDE_DIRS} )
   set( PYTHON_LIBRARIES ${Python_LIBRARIES} )
   message( "Apple - Using Python:${Python_VERSION_MAJOR} - Libraries:${PYTHON_LIBRARIES} - includeDirs: ${PYTHON_INCLUDE_DIR}" )
+elseif(WIN32)
+  find_package( Python 3.10 COMPONENTS Development REQUIRED )
+  set( PYTHON_LIBRARIES Python::Python )
 elseif(UNIX)
   find_package( PythonLibs 3 REQUIRED )
 else()
   set( PYTHONLIBS_VERSION_STRING $ENV{PY_VERSION} )
 endif()
-
-
 
 if(APPLE)
     execute_process( COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX ) #this because brew install location differs Intel/Apple Silicon macs
@@ -194,6 +200,15 @@ target_link_libraries(
     ${PROJECT_NAME}
     ${REQUIRED_LIBS_QUALIFIED}
     ${PYTHON_LIBRARIES}
-    # spdlog::spdlog
-    # spdlog::spdlog_header_only
 )
+
+# Link optional external deps when found (e.g., via vcpkg)
+if(TARGET nlohmann_json::nlohmann_json)
+  target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
+endif()
+if(TARGET spdlog::spdlog)
+  target_link_libraries(${PROJECT_NAME} spdlog::spdlog)
+endif()
+if(TARGET toml11::toml11)
+  target_link_libraries(${PROJECT_NAME} toml11::toml11)
+endif()
